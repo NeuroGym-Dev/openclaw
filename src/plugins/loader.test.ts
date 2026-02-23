@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { withEnv } from "../test-utils/env.js";
 import { loadOpenClawPlugins } from "./loader.js";
 
 type TempPlugin = { dir: string; file: string; id: string };
@@ -192,6 +193,104 @@ describe("loadOpenClawPlugins", () => {
     const telegram = registry.plugins.find((entry) => entry.id === "telegram");
     expect(telegram?.status).toBe("loaded");
     expect(registry.channels.some((entry) => entry.plugin.id === "telegram")).toBe(true);
+  });
+
+  it("loads bundled channel plugins when channels.<id>.enabled=true", () => {
+    const bundledDir = makeTempDir();
+    writePlugin({
+      id: "telegram",
+      body: `export default { id: "telegram", register(api) {
+  api.registerChannel({
+    plugin: {
+      id: "telegram",
+      meta: {
+        id: "telegram",
+        label: "Telegram",
+        selectionLabel: "Telegram",
+        docsPath: "/channels/telegram",
+        blurb: "telegram channel"
+      },
+      capabilities: { chatTypes: ["direct"] },
+      config: {
+        listAccountIds: () => [],
+        resolveAccount: () => ({ accountId: "default" })
+      },
+      outbound: { deliveryMode: "direct" }
+    }
+  });
+	} };`,
+      dir: bundledDir,
+      filename: "telegram.js",
+    });
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledDir;
+
+    const registry = loadOpenClawPlugins({
+      cache: false,
+      config: {
+        channels: {
+          telegram: {
+            enabled: true,
+          },
+        },
+        plugins: {
+          enabled: true,
+        },
+      },
+    });
+
+    const telegram = registry.plugins.find((entry) => entry.id === "telegram");
+    expect(telegram?.status).toBe("loaded");
+    expect(registry.channels.some((entry) => entry.plugin.id === "telegram")).toBe(true);
+  });
+
+  it("still respects explicit disable via plugins.entries for bundled channels", () => {
+    const bundledDir = makeTempDir();
+    writePlugin({
+      id: "telegram",
+      body: `export default { id: "telegram", register(api) {
+  api.registerChannel({
+    plugin: {
+      id: "telegram",
+      meta: {
+        id: "telegram",
+        label: "Telegram",
+        selectionLabel: "Telegram",
+        docsPath: "/channels/telegram",
+        blurb: "telegram channel"
+      },
+      capabilities: { chatTypes: ["direct"] },
+      config: {
+        listAccountIds: () => [],
+        resolveAccount: () => ({ accountId: "default" })
+      },
+      outbound: { deliveryMode: "direct" }
+    }
+  });
+	} };`,
+      dir: bundledDir,
+      filename: "telegram.js",
+    });
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledDir;
+
+    const registry = loadOpenClawPlugins({
+      cache: false,
+      config: {
+        channels: {
+          telegram: {
+            enabled: true,
+          },
+        },
+        plugins: {
+          entries: {
+            telegram: { enabled: false },
+          },
+        },
+      },
+    });
+
+    const telegram = registry.plugins.find((entry) => entry.id === "telegram");
+    expect(telegram?.status).toBe("disabled");
+    expect(telegram?.error).toBe("disabled in config");
   });
 
   it("enables bundled memory plugin when selected by slot", () => {
@@ -516,10 +615,8 @@ describe("loadOpenClawPlugins", () => {
 
   it("warns when loaded non-bundled plugin has no install/load-path provenance", () => {
     process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
-    const prevStateDir = process.env.OPENCLAW_STATE_DIR;
     const stateDir = makeTempDir();
-    process.env.OPENCLAW_STATE_DIR = stateDir;
-    try {
+    withEnv({ OPENCLAW_STATE_DIR: stateDir, CLAWDBOT_STATE_DIR: undefined }, () => {
       const globalDir = path.join(stateDir, "extensions", "rogue");
       fs.mkdirSync(globalDir, { recursive: true });
       writePlugin({
@@ -552,13 +649,7 @@ describe("loadOpenClawPlugins", () => {
             msg.includes("rogue") && msg.includes("loaded without install/load-path provenance"),
         ),
       ).toBe(true);
-    } finally {
-      if (prevStateDir === undefined) {
-        delete process.env.OPENCLAW_STATE_DIR;
-      } else {
-        process.env.OPENCLAW_STATE_DIR = prevStateDir;
-      }
-    }
+    });
   });
 
   it("rejects plugin entry files that escape plugin root via symlink", () => {
