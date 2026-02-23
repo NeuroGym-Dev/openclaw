@@ -361,11 +361,16 @@ export function renderAgentFiles(params: {
   agentFileContents: Record<string, string>;
   agentFileDrafts: Record<string, string>;
   agentFileSaving: boolean;
+  agentNewFileName?: string;
+  agentNewFileContent?: string;
   onLoadFiles: (agentId: string) => void;
   onSelectFile: (name: string) => void;
   onFileDraftChange: (name: string, content: string) => void;
   onFileReset: (name: string) => void;
   onFileSave: (name: string) => void;
+  onCreateFile?: (agentId: string, name: string, content: string) => void;
+  onNewFileNameChange?: (value: string) => void;
+  onNewFileContentChange?: (value: string) => void;
 }) {
   const list = params.agentFilesList?.agentId === params.agentId ? params.agentFilesList : null;
   const files = list?.files ?? [];
@@ -374,13 +379,20 @@ export function renderAgentFiles(params: {
   const baseContent = active ? (params.agentFileContents[active] ?? "") : "";
   const draft = active ? (params.agentFileDrafts[active] ?? baseContent) : "";
   const isDirty = active ? draft !== baseContent : false;
+  const newFileName = params.agentNewFileName ?? "";
+  const newFileContent = params.agentNewFileContent ?? "";
+  const canCreate =
+    params.onCreateFile &&
+    newFileName.trim().length > 0 &&
+    !newFileName.includes("/") &&
+    !newFileName.includes("\\");
 
   return html`
     <section class="card">
       <div class="row" style="justify-content: space-between;">
         <div>
-          <div class="card-title">Core Files</div>
-          <div class="card-sub">Bootstrap persona, identity, and tool guidance.</div>
+          <div class="card-title">Workspace Files</div>
+          <div class="card-sub">Core instructions and any files in the agent workspace (e.g. .txt, .md).</div>
         </div>
         <button
           class="btn btn--sm"
@@ -408,6 +420,42 @@ export function renderAgentFiles(params: {
               </div>
             `
           : html`
+              <div class="agent-files-new" style="margin-top: 12px;">
+                <div class="card-sub" style="margin-bottom: 8px;">Create a file in the workspace (e.g. .txt, .md, .csv, .json)</div>
+                <div class="row" style="gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+                  <label class="field" style="min-width: 140px;">
+                    <span>Filename</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. secrets.txt"
+                      .value=${newFileName}
+                      @input=${(e: Event) =>
+                        params.onNewFileNameChange?.((e.target as HTMLInputElement).value)}
+                    />
+                  </label>
+                  <label class="field" style="min-width: 120px; flex: 1;">
+                    <span>Content (optional)</span>
+                    <input
+                      type="text"
+                      placeholder="Initial content"
+                      .value=${newFileContent}
+                      @input=${(e: Event) =>
+                        params.onNewFileContentChange?.((e.target as HTMLInputElement).value)}
+                    />
+                  </label>
+                  <button
+                    class="btn btn--sm primary"
+                    ?disabled=${!canCreate || params.agentFileSaving}
+                    @click=${() => {
+                      if (canCreate && params.onCreateFile) {
+                        params.onCreateFile(params.agentId, newFileName.trim(), newFileContent);
+                      }
+                    }}
+                  >
+                    ${params.agentFileSaving ? "Saving…" : "Create file"}
+                  </button>
+                </div>
+              </div>
               <div class="agent-files-grid" style="margin-top: 16px;">
                 <div class="agent-files-list">
                   ${

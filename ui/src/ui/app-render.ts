@@ -8,7 +8,7 @@ import type { AppViewState } from "./app-view-state.ts";
 import { loadAgentFileContent, loadAgentFiles, saveAgentFile } from "./controllers/agent-files.ts";
 import { loadAgentIdentities, loadAgentIdentity } from "./controllers/agent-identity.ts";
 import { loadAgentSkills } from "./controllers/agent-skills.ts";
-import { loadAgents } from "./controllers/agents.ts";
+import { createAgent, loadAgents } from "./controllers/agents.ts";
 import { loadChannels } from "./controllers/channels.ts";
 import { loadChatHistory } from "./controllers/chat.ts";
 import {
@@ -354,6 +354,7 @@ export function renderApp(state: AppViewState) {
           state.tab === "agents"
             ? renderAgents({
                 loading: state.agentsLoading,
+                createLoading: state.agentsCreating,
                 error: state.agentsError,
                 agentsList: state.agentsList,
                 selectedAgentId: resolvedAgentId,
@@ -377,6 +378,8 @@ export function renderApp(state: AppViewState) {
                 agentFileContents: state.agentFileContents,
                 agentFileDrafts: state.agentFileDrafts,
                 agentFileSaving: state.agentFileSaving,
+                agentNewFileName: state.agentNewFileName,
+                agentNewFileContent: state.agentNewFileContent,
                 agentIdentityLoading: state.agentIdentityLoading,
                 agentIdentityError: state.agentIdentityError,
                 agentIdentityById: state.agentIdentityById,
@@ -391,6 +394,20 @@ export function renderApp(state: AppViewState) {
                   if (agentIds.length > 0) {
                     void loadAgentIdentities(state, agentIds);
                   }
+                },
+                onCreateAgent: () => {
+                  const raw = window.prompt("New agent name");
+                  if (!raw) {
+                    return;
+                  }
+                  const roleRaw = window.prompt("Role (optional)", "");
+                  const role = roleRaw ?? "";
+                  void createAgent(state, raw, role).then(() => {
+                    const selectedId = state.agentsSelectedId;
+                    if (selectedId) {
+                      void loadAgentIdentity(state, selectedId);
+                    }
+                  });
                 },
                 onSelectAgent: (agentId) => {
                   if (state.agentsSelectedId === agentId) {
@@ -461,6 +478,18 @@ export function renderApp(state: AppViewState) {
                     state.agentFileDrafts[name] ?? state.agentFileContents[name] ?? "";
                   void saveAgentFile(state, resolvedAgentId, name, content);
                 },
+                onCreateFile: (agentId, name, content) => {
+                  void saveAgentFile(state, agentId, name, content).then(() => {
+                    void loadAgentFiles(state, agentId).then(() => {
+                      state.agentFileActive = name;
+                      state.agentNewFileName = "";
+                      state.agentNewFileContent = "";
+                      void loadAgentFileContent(state, agentId, name);
+                    });
+                  });
+                },
+                onNewFileNameChange: (value) => (state.agentNewFileName = value),
+                onNewFileContentChange: (value) => (state.agentNewFileContent = value),
                 onToolsProfileChange: (agentId, profile, clearAllow) => {
                   if (!configValue) {
                     return;

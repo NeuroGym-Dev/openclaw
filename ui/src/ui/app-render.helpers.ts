@@ -87,6 +87,7 @@ export function renderChatControls(state: AppViewState) {
   const sessionOptions = resolveSessionOptions(
     state.sessionKey,
     state.sessionsResult,
+    state.agentsList,
     mainSessionKey,
   );
   const disableThinkingToggle = state.onboarding;
@@ -352,6 +353,7 @@ export function resolveSessionDisplayName(
 function resolveSessionOptions(
   sessionKey: string,
   sessions: SessionsListResult | null,
+  agentsList: AppViewState["agentsList"],
   mainSessionKey?: string | null,
 ) {
   const seen = new Set<string>();
@@ -388,6 +390,21 @@ function resolveSessionOptions(
           displayName: resolveSessionDisplayName(s.key, s),
         });
       }
+    }
+  }
+
+  // Add one selectable main-session option for each configured agent, even if
+  // the session has not been created yet.
+  const agents = agentsList?.agents ?? [];
+  for (const agent of agents) {
+    const key = agent.id === "main" ? "main" : `agent:${agent.id}:main`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      const name =
+        agent.identity?.name?.trim() ||
+        agent.name?.trim() ||
+        (agent.id === "main" ? "Main" : agent.id);
+      options.push({ key, displayName: `Agent: ${name}` });
     }
   }
 

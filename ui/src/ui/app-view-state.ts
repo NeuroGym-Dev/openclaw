@@ -125,6 +125,7 @@ export type AppViewState = {
   presenceError: string | null;
   presenceStatus: string | null;
   agentsLoading: boolean;
+  agentsCreating: boolean;
   agentsList: AgentsListResult | null;
   agentsError: string | null;
   agentsSelectedId: string | null;
@@ -136,6 +137,8 @@ export type AppViewState = {
   agentFileDrafts: Record<string, string>;
   agentFileActive: string | null;
   agentFileSaving: boolean;
+  agentNewFileName: string;
+  agentNewFileContent: string;
   agentIdentityLoading: boolean;
   agentIdentityError: string | null;
   agentIdentityById: Record<string, AgentIdentityResult>;

@@ -32,6 +32,7 @@ export type AgentsPanel = "overview" | "files" | "tools" | "skills" | "channels"
 
 export type AgentsProps = {
   loading: boolean;
+  createLoading: boolean;
   error: string | null;
   agentsList: AgentsListResult | null;
   selectedAgentId: string | null;
@@ -55,6 +56,8 @@ export type AgentsProps = {
   agentFileContents: Record<string, string>;
   agentFileDrafts: Record<string, string>;
   agentFileSaving: boolean;
+  agentNewFileName: string;
+  agentNewFileContent: string;
   agentIdentityLoading: boolean;
   agentIdentityError: string | null;
   agentIdentityById: Record<string, AgentIdentityResult>;
@@ -64,6 +67,7 @@ export type AgentsProps = {
   agentSkillsAgentId: string | null;
   skillsFilter: string;
   onRefresh: () => void;
+  onCreateAgent: () => void;
   onSelectAgent: (agentId: string) => void;
   onSelectPanel: (panel: AgentsPanel) => void;
   onLoadFiles: (agentId: string) => void;
@@ -71,6 +75,9 @@ export type AgentsProps = {
   onFileDraftChange: (name: string, content: string) => void;
   onFileReset: (name: string) => void;
   onFileSave: (name: string) => void;
+  onCreateFile?: (agentId: string, name: string, content: string) => void;
+  onNewFileNameChange?: (value: string) => void;
+  onNewFileContentChange?: (value: string) => void;
   onToolsProfileChange: (agentId: string, profile: string | null, clearAllow: boolean) => void;
   onToolsOverridesChange: (agentId: string, alsoAllow: string[], deny: string[]) => void;
   onConfigReload: () => void;
@@ -111,9 +118,22 @@ export function renderAgents(props: AgentsProps) {
             <div class="card-title">Agents</div>
             <div class="card-sub">${agents.length} configured.</div>
           </div>
-          <button class="btn btn--sm" ?disabled=${props.loading} @click=${props.onRefresh}>
-            ${props.loading ? "Loading…" : "Refresh"}
-          </button>
+          <div class="row" style="gap: 8px;">
+            <button
+              class="btn btn--sm"
+              ?disabled=${props.loading || props.createLoading}
+              @click=${props.onCreateAgent}
+            >
+              ${props.createLoading ? "Creating…" : "New agent"}
+            </button>
+            <button
+              class="btn btn--sm"
+              ?disabled=${props.loading || props.createLoading}
+              @click=${props.onRefresh}
+            >
+              ${props.loading ? "Loading…" : "Refresh"}
+            </button>
+          </div>
         </div>
         ${
           props.error
@@ -194,11 +214,16 @@ export function renderAgents(props: AgentsProps) {
                         agentFileContents: props.agentFileContents,
                         agentFileDrafts: props.agentFileDrafts,
                         agentFileSaving: props.agentFileSaving,
+                        agentNewFileName: props.agentNewFileName,
+                        agentNewFileContent: props.agentNewFileContent,
                         onLoadFiles: props.onLoadFiles,
                         onSelectFile: props.onSelectFile,
                         onFileDraftChange: props.onFileDraftChange,
                         onFileReset: props.onFileReset,
                         onFileSave: props.onFileSave,
+                        onCreateFile: props.onCreateFile,
+                        onNewFileNameChange: props.onNewFileNameChange,
+                        onNewFileContentChange: props.onNewFileContentChange,
                       })
                     : nothing
                 }

@@ -210,6 +210,7 @@ export class OpenClawApp extends LitElement {
   @state() presenceStatus: string | null = null;
 
   @state() agentsLoading = false;
+  @state() agentsCreating = false;
   @state() agentsList: AgentsListResult | null = null;
   @state() agentsError: string | null = null;
   @state() agentsSelectedId: string | null = null;
@@ -222,6 +223,8 @@ export class OpenClawApp extends LitElement {
   @state() agentFileDrafts: Record<string, string> = {};
   @state() agentFileActive: string | null = null;
   @state() agentFileSaving = false;
+  @state() agentNewFileName = "";
+  @state() agentNewFileContent = "";
   @state() agentIdentityLoading = false;
   @state() agentIdentityError: string | null = null;
   @state() agentIdentityById: Record<string, AgentIdentityResult> = {};

@@ -61,6 +61,20 @@ const MEMORY_FILE_NAMES = [DEFAULT_MEMORY_FILENAME, DEFAULT_MEMORY_ALT_FILENAME]
 
 const ALLOWED_FILE_NAMES = new Set<string>([...BOOTSTRAP_FILE_NAMES, ...MEMORY_FILE_NAMES]);
 
+/** Allow workspace files created by the agent (e.g. slack_oauth_token.txt). No path separators, no . or .. */
+function isAllowedWorkspaceExtraFileName(name: string): boolean {
+  if (!name || name.trim() !== name) {
+    return false;
+  }
+  if (name.includes("/") || name.includes("\\") || name === "." || name === "..") {
+    return false;
+  }
+  if (name.length > 255) {
+    return false;
+  }
+  return true;
+}
+
 function resolveAgentWorkspaceFileOrRespondError(
   params: Record<string, unknown>,
   respond: RespondFn,
@@ -84,7 +98,9 @@ function resolveAgentWorkspaceFileOrRespondError(
   const name = (
     typeof rawName === "string" || typeof rawName === "number" ? String(rawName) : ""
   ).trim();
-  if (!ALLOWED_FILE_NAMES.has(name)) {
+  const allowed =
+    ALLOWED_FILE_NAMES.has(name) || isAllowedWorkspaceExtraFileName(name);
+  if (!allowed) {
     respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, `unsupported file "${name}"`));
     return null;
   }
@@ -164,6 +180,35 @@ async function listAgentFiles(workspaceDir: string, options?: { hideBootstrap?: 
     } else {
       files.push({ name: DEFAULT_MEMORY_FILENAME, path: primaryMemoryPath, missing: true });
     }
+  }
+
+  // Include any other top-level files in the workspace (e.g. agent-created slack_oauth_token.txt)
+  const knownNames = new Set(files.map((f) => f.name));
+  try {
+    const entries = await fs.readdir(workspaceDir, { withFileTypes: true });
+    for (const e of entries) {
+      if (!e.isFile() || knownNames.has(e.name)) {
+        continue;
+      }
+      // Skip internal dirs/files if we ever add them at top level
+      if (e.name.startsWith(".")) {
+        continue;
+      }
+      const filePath = path.join(workspaceDir, e.name);
+      const meta = await statFile(filePath);
+      if (meta) {
+        files.push({
+          name: e.name,
+          path: filePath,
+          missing: false,
+          size: meta.size,
+          updatedAtMs: meta.updatedAtMs,
+        });
+        knownNames.add(e.name);
+      }
+    }
+  } catch {
+    // Workspace may not exist yet or be unreadable; keep bootstrap + memory only.
   }
 
   return files;
@@ -278,12 +323,15 @@ export const agentsHandlers: GatewayRequestHandlers = {
 
     // Always write Name to IDENTITY.md; optionally include emoji/avatar.
     const safeName = sanitizeIdentityLine(rawName);
+    const role = resolveOptionalStringParam(params.role);
     const emoji = resolveOptionalStringParam(params.emoji);
     const avatar = resolveOptionalStringParam(params.avatar);
     const identityPath = path.join(workspaceDir, DEFAULT_IDENTITY_FILENAME);
     const lines = [
       "",
       `- Name: ${safeName}`,
+      `- Agent ID: ${agentId}`,
+      ...(role ? [`- Role: ${sanitizeIdentityLine(role)}`] : []),
       ...(emoji ? [`- Emoji: ${sanitizeIdentityLine(emoji)}`] : []),
       ...(avatar ? [`- Avatar: ${sanitizeIdentityLine(avatar)}`] : []),
       "",
@@ -466,7 +514,13 @@ export const agentsHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const content = await fs.readFile(filePath, "utf-8");
+    let content: string;
+    try {
+      content = await fs.readFile(filePath, "utf-8");
+    } catch {
+      // Binary or unreadable; return empty content so UI doesn't break
+      content = "";
+    }
     respond(
       true,
       {
