@@ -11,6 +11,8 @@ export type ControlUiAuthPolicy = {
 
 export function resolveControlUiAuthPolicy(params: {
   isControlUi: boolean;
+  isWebchat?: boolean;
+  isGatewayClient?: boolean;
   controlUiConfig:
     | {
         allowInsecureAuth?: boolean;
@@ -19,10 +21,12 @@ export function resolveControlUiAuthPolicy(params: {
     | undefined;
   deviceRaw: ConnectParams["device"] | null | undefined;
 }): ControlUiAuthPolicy {
+  const isBypassEligible =
+    params.isControlUi || params.isWebchat === true || params.isGatewayClient === true;
   const allowInsecureAuthConfigured =
     params.isControlUi && params.controlUiConfig?.allowInsecureAuth === true;
   const dangerouslyDisableDeviceAuth =
-    params.isControlUi && params.controlUiConfig?.dangerouslyDisableDeviceAuth === true;
+    isBypassEligible && params.controlUiConfig?.dangerouslyDisableDeviceAuth === true;
   return {
     allowInsecureAuthConfigured,
     dangerouslyDisableDeviceAuth,
@@ -56,6 +60,9 @@ export function evaluateMissingDeviceIdentity(params: {
   isLocalClient: boolean;
 }): MissingDeviceIdentityDecision {
   if (params.hasDeviceIdentity) {
+    return { kind: "allow" };
+  }
+  if (params.controlUiAuthPolicy.allowBypass && params.authOk) {
     return { kind: "allow" };
   }
   if (params.isControlUi && !params.controlUiAuthPolicy.allowBypass) {
