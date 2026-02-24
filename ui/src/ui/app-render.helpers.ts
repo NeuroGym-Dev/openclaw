@@ -34,6 +34,25 @@ function resolveSidebarChatSessionKey(state: AppViewState): string {
   return "main";
 }
 
+const CHAT_THINK_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh"] as const;
+const CHAT_THINK_BINARY = ["off", "on"] as const;
+
+function isBinaryThinkingProvider(provider?: string | null): boolean {
+  const id = provider?.trim().toLowerCase() ?? "";
+  return id === "z.ai" || id === "zai";
+}
+
+function chatThinkLevelOptions(provider?: string | null): readonly string[] {
+  return isBinaryThinkingProvider(provider) ? CHAT_THINK_BINARY : CHAT_THINK_LEVELS;
+}
+
+function withCurrentThinkOption(options: readonly string[], current: string): string[] {
+  if (!current || options.includes(current)) {
+    return [...options];
+  }
+  return [...options, current];
+}
+
 function resetChatStateForSessionSwitch(state: AppViewState, sessionKey: string) {
   state.sessionKey = sessionKey;
   state.chatMessage = "";
@@ -197,6 +216,38 @@ export function renderChatControls(state: AppViewState) {
               return html`<option value=${ref}>${label}</option>`;
             },
           )}
+        </select>
+      </label>
+      <label class="field chat-controls__thinking" title=${t("chat.thinkingLevelTitle")}>
+        <select
+          .value=${(() => {
+            const raw = activeSession?.thinkingLevel ?? state.chatThinkingLevel ?? "off";
+            const binary = isBinaryThinkingProvider(activeSession?.modelProvider);
+            if (binary && raw && raw !== "off") return "on";
+            return raw || "off";
+          })()}
+          ?disabled=${!state.connected}
+          @change=${(e: Event) => {
+            const value = (e.target as HTMLSelectElement).value;
+            const binary = isBinaryThinkingProvider(activeSession?.modelProvider);
+            const patchValue = binary && value === "on" ? "low" : value || null;
+            void patchSession(state, state.sessionKey, { thinkingLevel: patchValue });
+          }}
+        >
+          ${(() => {
+            const raw = activeSession?.thinkingLevel ?? state.chatThinkingLevel ?? "off";
+            const binary = isBinaryThinkingProvider(activeSession?.modelProvider);
+            const currentDisplay = binary && raw && raw !== "off" ? "on" : raw || "off";
+            const options = withCurrentThinkOption(
+              chatThinkLevelOptions(activeSession?.modelProvider),
+              currentDisplay,
+            );
+            return repeat(
+              options,
+              (level) => level,
+              (level) => html`<option value=${level}>${level}</option>`,
+            );
+          })()}
         </select>
       </label>
       <button

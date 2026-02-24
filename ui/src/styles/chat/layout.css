@@ -440,6 +440,19 @@
 }
 
 .chat-controls__thinking {
+  min-width: 100px;
+  max-width: 140px;
+}
+
+.chat-controls__thinking select {
+  padding: 6px 10px;
+  font-size: 13px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-controls__thinking-btn {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -450,8 +463,9 @@
   border: 1px solid var(--border);
 }
 
-/* Light theme thinking indicator override */
-:root[data-theme="light"] .chat-controls__thinking {
+/* Light theme thinking dropdown (select inherits from field) */
+/* Light theme thinking-btn override (if used elsewhere) */
+:root[data-theme="light"] .chat-controls__thinking-btn {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(16, 24, 40, 0.15);
 }

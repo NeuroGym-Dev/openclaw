@@ -113,6 +113,7 @@ export const en: TranslationMap = {
     focusToggle: "Toggle focus mode (hide sidebar + page header)",
     onboardingDisabled: "Disabled during onboarding",
     modelPickerTitle: "Override model for this session",
+    thinkingLevelTitle: "Thinking level (for models that support it)",
   },
   languages: {
     en: "English",

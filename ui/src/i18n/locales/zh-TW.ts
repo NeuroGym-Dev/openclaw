@@ -112,6 +112,7 @@ export const zh_TW: TranslationMap = {
     focusToggle: "切換專注模式 (隱藏側邊欄 + 頁面頁眉)",
     onboardingDisabled: "引導期間禁用",
     modelPickerTitle: "Override model for this session",
+    thinkingLevelTitle: "思考級別（僅支援該功能的模型）",
   },
   languages: {
     en: "English",

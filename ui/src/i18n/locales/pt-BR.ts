@@ -115,6 +115,7 @@ export const pt_BR: TranslationMap = {
     focusToggle: "Alternar modo de foco (ocultar barra lateral + cabeçalho da página)",
     onboardingDisabled: "Desativado durante a integração",
     modelPickerTitle: "Substituir modelo desta sessão",
+    thinkingLevelTitle: "Nível de raciocínio (modelos que suportam)",
   },
   languages: {
     en: "English",
