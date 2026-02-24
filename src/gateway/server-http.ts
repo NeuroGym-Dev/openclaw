@@ -483,6 +483,23 @@ export function createGatewayHttpServer(opts: {
       if (await handleSlackHttpRequest(req, res)) {
         return;
       }
+      // Fallback: respond to Slack url_verification when no Slack HTTP handler is registered
+      // (e.g. Slack not in http mode), so the Slack app Request URL can still be verified.
+      if (requestPath === "/slack/events" && req.method === "POST") {
+        const slackBody = await readJsonBody(req, 4096);
+        if (
+          slackBody.ok &&
+          slackBody.value &&
+          typeof (slackBody.value as { type?: string }).type === "string" &&
+          (slackBody.value as { type: string }).type === "url_verification" &&
+          typeof (slackBody.value as { challenge?: string }).challenge === "string"
+        ) {
+          sendJson(res, 200, {
+            challenge: (slackBody.value as { challenge: string }).challenge,
+          });
+          return;
+        }
+      }
       if (handlePluginRequest) {
         // Channel HTTP endpoints are gateway-auth protected by default.
         // Non-channel plugin routes remain plugin-owned and must enforce
