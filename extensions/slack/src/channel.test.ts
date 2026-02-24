@@ -14,6 +14,23 @@ vi.mock("./runtime.js", () => ({
 
 import { slackPlugin } from "./channel.js";
 
+type SlackAccountArg = Parameters<NonNullable<typeof slackPlugin.config>["isConfigured"]>[0];
+
+function createAccount(overrides: Partial<SlackAccountArg> = {}): SlackAccountArg {
+  const { config, ...rest } = overrides;
+  const account = {
+    accountId: "default",
+    enabled: true,
+    botTokenSource: "none",
+    appTokenSource: "none",
+    ...rest,
+  } as SlackAccountArg;
+  account.config = {
+    ...(config ?? {}),
+  };
+  return account;
+}
+
 describe("slackPlugin actions", () => {
   it("forwards read threadId to Slack action handler", async () => {
     handleSlackActionMock.mockResolvedValueOnce({ messages: [], hasMore: false });
@@ -40,6 +57,68 @@ describe("slackPlugin actions", () => {
       {},
       undefined,
     );
+  });
+});
+
+describe("slackPlugin configuration", () => {
+  it("treats socket mode as configured only with bot + app tokens", () => {
+    const isConfigured = slackPlugin.config?.isConfigured;
+    expect(isConfigured).toBeDefined();
+
+    expect(
+      isConfigured!(
+        createAccount({
+          botToken: "xoxb-test",
+          appToken: "xapp-test",
+          config: { mode: "socket" },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isConfigured!(
+        createAccount({
+          botToken: "xoxb-test",
+          config: { mode: "socket" },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("treats HTTP mode as configured with bot token + signing secret", () => {
+    const isConfigured = slackPlugin.config?.isConfigured;
+    expect(isConfigured).toBeDefined();
+
+    expect(
+      isConfigured!(
+        createAccount({
+          botToken: "xoxb-test",
+          config: { mode: "http", signingSecret: "secret" },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isConfigured!(
+        createAccount({
+          botToken: "xoxb-test",
+          config: { mode: "http" },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("reports HTTP mode accounts as configured in status snapshots", () => {
+    const buildAccountSnapshot = slackPlugin.status?.buildAccountSnapshot;
+    expect(buildAccountSnapshot).toBeDefined();
+
+    const snapshot = buildAccountSnapshot!({
+      account: createAccount({
+        botToken: "xoxb-test",
+        config: { mode: "http", signingSecret: "secret" },
+      }),
+      runtime: undefined,
+      probe: undefined,
+    });
+    expect(snapshot.configured).toBe(true);
   });
 });
 
