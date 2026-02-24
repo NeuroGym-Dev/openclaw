@@ -248,6 +248,8 @@ export class OpenClawApp extends LitElement {
   @state() sessionsFilterLimit = "120";
   @state() sessionsIncludeGlobal = true;
   @state() sessionsIncludeUnknown = false;
+  @state() chatModelsList: Array<{ provider: string; id: string; name?: string }> | null = null;
+  @state() chatModelsListLoading = false;
 
   @state() usageLoading = false;
   @state() usageResult: import("./types.js").SessionsUsageResult | null = null;

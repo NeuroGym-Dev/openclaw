@@ -336,6 +336,11 @@
   max-width: 300px;
 }
 
+.chat-controls__model {
+  min-width: 140px;
+  max-width: 280px;
+}
+
 .chat-controls__thinking {
   display: flex;
   align-items: center;
@@ -426,6 +431,14 @@
   text-overflow: ellipsis;
 }
 
+.chat-controls__model select {
+  padding: 6px 10px;
+  font-size: 13px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .chat-controls__thinking {
   display: flex;
   align-items: center;
@@ -458,6 +471,10 @@
   }
 
   .chat-controls__session {
+    min-width: 120px;
+  }
+
+  .chat-controls__model {
     min-width: 120px;
   }
 }

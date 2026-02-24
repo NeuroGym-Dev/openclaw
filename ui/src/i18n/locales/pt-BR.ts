@@ -114,6 +114,7 @@ export const pt_BR: TranslationMap = {
     thinkingToggle: "Alternar saída de pensamento/trabalho do assistente",
     focusToggle: "Alternar modo de foco (ocultar barra lateral + cabeçalho da página)",
     onboardingDisabled: "Desativado durante a integração",
+    modelPickerTitle: "Substituir modelo desta sessão",
   },
   languages: {
     en: "English",

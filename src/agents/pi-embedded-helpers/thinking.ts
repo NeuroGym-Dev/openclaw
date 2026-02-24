@@ -2,11 +2,13 @@ import { normalizeThinkLevel, type ThinkLevel } from "../../auto-reply/thinking.
 
 function extractSupportedValues(raw: string): string[] {
   const match =
-    raw.match(/supported values are:\s*([^\n.]+)/i) ?? raw.match(/supported values:\s*([^\n.]+)/i);
+    raw.match(/supported values are:\s*([^\n.]+)/i) ??
+    raw.match(/supported values:\s*([^\n.]+)/i) ??
+    raw.match(/supported value is:\s*([^\n.]+)/i);
   if (!match?.[1]) {
     return [];
   }
-  const fragment = match[1];
+  const fragment = match[1].trim();
   const quoted = Array.from(fragment.matchAll(/['"]([^'"]+)['"]/g)).map((entry) =>
     entry[1]?.trim(),
   );

@@ -6,6 +6,8 @@ import { syncUrlWithSessionKey } from "./app-settings.ts";
 import type { AppViewState } from "./app-view-state.ts";
 import { OpenClawApp } from "./app.ts";
 import { ChatState, loadChatHistory } from "./controllers/chat.ts";
+import { loadChatModels } from "./controllers/chat-models.ts";
+import { patchSession } from "./controllers/sessions.ts";
 import { icons } from "./icons.ts";
 import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation.ts";
 import type { ThemeTransitionContext } from "./theme-transition.ts";
@@ -83,6 +85,9 @@ export function renderTab(state: AppViewState, tab: Tab) {
 }
 
 export function renderChatControls(state: AppViewState) {
+  if (state.connected && state.chatModelsList === null && !state.chatModelsListLoading) {
+    void loadChatModels(state);
+  }
   const mainSessionKey = resolveMainSessionKey(state.hello, state.sessionsResult);
   const sessionOptions = resolveSessionOptions(
     state.sessionKey,
@@ -90,6 +95,12 @@ export function renderChatControls(state: AppViewState) {
     state.agentsList,
     mainSessionKey,
   );
+  const activeSession = state.sessionsResult?.sessions?.find((s) => s.key === state.sessionKey);
+  const currentModelRef =
+    activeSession?.modelProvider && activeSession?.model
+      ? `${activeSession.modelProvider}/${activeSession.model}`
+      : "";
+  const modelOptions = state.chatModelsList ?? [];
   const disableThinkingToggle = state.onboarding;
   const disableFocusToggle = state.onboarding;
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
@@ -164,6 +175,27 @@ export function renderChatControls(state: AppViewState) {
               html`<option value=${entry.key} title=${entry.key}>
                 ${entry.displayName ?? entry.key}
               </option>`,
+          )}
+        </select>
+      </label>
+      <label class="field chat-controls__model" title=${t("chat.modelPickerTitle")}>
+        <select
+          .value=${currentModelRef}
+          ?disabled=${!state.connected || state.chatModelsListLoading}
+          @change=${(e: Event) => {
+            const value = (e.target as HTMLSelectElement).value;
+            void patchSession(state, state.sessionKey, { model: value || null });
+          }}
+        >
+          <option value="">${state.chatModelsListLoading ? "Loading…" : "Default"}</option>
+          ${repeat(
+            modelOptions,
+            (m) => `${m.provider}/${m.id}`,
+            (m) => {
+              const ref = `${m.provider}/${m.id}`;
+              const label = m.name && m.name !== m.id ? `${m.name} (${ref})` : ref;
+              return html`<option value=${ref}>${label}</option>`;
+            },
           )}
         </select>
       </label>
