@@ -581,6 +581,7 @@ export const OpenClawSchema = z
           })
           .strict()
           .optional(),
+        defaultClientToolsPath: z.string().optional(),
       })
       .strict()
       .optional(),
