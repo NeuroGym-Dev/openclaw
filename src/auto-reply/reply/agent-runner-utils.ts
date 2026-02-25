@@ -184,6 +184,13 @@ export function buildEmbeddedRunBaseParams(params: {
     bashElevated: params.run.bashElevated,
     timeoutMs: params.run.timeoutMs,
     runId: params.runId,
+    ...(params.run.clientTools !== undefined ? { clientTools: params.run.clientTools } : {}),
+    ...(params.run.executeClientToolsLocally !== undefined
+      ? { executeClientToolsLocally: params.run.executeClientToolsLocally }
+      : {}),
+    ...(params.run.mcporterConfigPath !== undefined
+      ? { mcporterConfigPath: params.run.mcporterConfigPath }
+      : {}),
   };
 }
 

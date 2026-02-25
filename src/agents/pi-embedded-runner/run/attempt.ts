@@ -40,6 +40,7 @@ import { DEFAULT_CONTEXT_TOKENS } from "../../defaults.js";
 import { resolveOpenClawDocsPath } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
 import { resolveImageSanitizationLimits } from "../../image-sanitization.js";
+import { toLocalMcpToolDefinitions } from "../../mcp-local-tools.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
 import { resolveDefaultModelForAgent } from "../../model-selection.js";
 import { createOllamaStreamFn, OLLAMA_NATIVE_BASE_URL } from "../../ollama-stream.js";
@@ -648,19 +649,26 @@ export async function runEmbeddedAttempt(
         cfg: params.config,
         agentId: sessionAgentId,
       });
-      const clientToolDefs = params.clientTools
-        ? toClientToolDefinitions(
-            params.clientTools,
-            (toolName, toolParams) => {
-              clientToolCallDetected = { name: toolName, params: toolParams };
-            },
-            {
-              agentId: sessionAgentId,
-              sessionKey: params.sessionKey,
-              loopDetection: clientToolLoopDetection,
-            },
-          )
-        : [];
+      const mcporterConfigPath =
+        params.mcporterConfigPath ??
+        process.env.OPENCLAW_MCPORTER_CONFIG ??
+        "/app/config/mcporter.json";
+      const clientToolDefs =
+        params.clientTools && params.clientTools.length > 0
+          ? params.executeClientToolsLocally
+            ? toLocalMcpToolDefinitions(params.clientTools, mcporterConfigPath)
+            : toClientToolDefinitions(
+                params.clientTools,
+                (toolName, toolParams) => {
+                  clientToolCallDetected = { name: toolName, params: toolParams };
+                },
+                {
+                  agentId: sessionAgentId,
+                  sessionKey: params.sessionKey,
+                  loopDetection: clientToolLoopDetection,
+                },
+              )
+          : [];
 
       const allCustomTools = [...customTools, ...clientToolDefs];
 

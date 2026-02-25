@@ -67,6 +67,13 @@ export type RunEmbeddedPiAgentParams = {
   images?: ImageContent[];
   /** Optional client-provided tools (OpenResponses hosted tools). */
   clientTools?: ClientToolDefinition[];
+  /**
+   * When true and clientTools are set, execute them locally via mcporter instead of
+   * returning "pending" for the client. Use for channel-originated runs (Slack, etc.).
+   */
+  executeClientToolsLocally?: boolean;
+  /** Path to mcporter config (e.g. /app/config/mcporter.json). Used when executeClientToolsLocally is true. */
+  mcporterConfigPath?: string;
   /** Disable built-in tools for this run (LLM-only mode). */
   disableTools?: boolean;
   provider?: string;

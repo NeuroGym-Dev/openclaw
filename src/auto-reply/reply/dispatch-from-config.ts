@@ -11,6 +11,7 @@ import {
 } from "../../logging/diagnostic.js";
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { maybeApplyTtsToPayload, normalizeTtsAutoMode, resolveTtsConfig } from "../../tts/tts.js";
+import { loadDefaultClientTools } from "../default-client-tools.js";
 import { getReplyFromConfig } from "../reply.js";
 import type { FinalizedMsgContext } from "../templating.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
@@ -335,10 +336,18 @@ export async function dispatchReplyFromConfig(params: {
       return { ...payload, text: undefined };
     };
 
+    const defaultClientTools = await loadDefaultClientTools(cfg);
+    const mergedReplyOptions: Omit<GetReplyOptions, "onToolResult" | "onBlockReply"> = {
+      ...params.replyOptions,
+      clientTools: params.replyOptions?.clientTools ?? defaultClientTools,
+      executeClientToolsLocally:
+        params.replyOptions?.executeClientToolsLocally ??
+        (defaultClientTools && defaultClientTools.length > 0 ? true : undefined),
+    };
     const replyResult = await (params.replyResolver ?? getReplyFromConfig)(
       ctx,
       {
-        ...params.replyOptions,
+        ...mergedReplyOptions,
         onToolResult: (payload: ReplyPayload) => {
           const run = async () => {
             const ttsPayload = await maybeApplyTtsToPayload({

@@ -327,4 +327,11 @@ export type GatewayConfig = {
    * Set to 0 to disable. Default: 5.
    */
   channelHealthCheckMinutes?: number;
+  /**
+   * Path to a JSON file containing default client tools (OpenResponses-style array).
+   * When set, these tools are injected into every channel-originated run (Slack, etc.)
+   * and executed locally via mcporter when executeClientToolsLocally is true.
+   * Example: "/app/config/default-client-tools.json"
+   */
+  defaultClientToolsPath?: string;
 };

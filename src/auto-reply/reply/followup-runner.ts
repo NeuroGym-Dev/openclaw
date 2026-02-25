@@ -174,6 +174,15 @@ export function createFollowupRunner(params: {
               timeoutMs: queued.run.timeoutMs,
               runId,
               blockReplyBreak: queued.run.blockReplyBreak,
+              ...(queued.run.clientTools !== undefined
+                ? { clientTools: queued.run.clientTools }
+                : {}),
+              ...(queued.run.executeClientToolsLocally !== undefined
+                ? { executeClientToolsLocally: queued.run.executeClientToolsLocally }
+                : {}),
+              ...(queued.run.mcporterConfigPath !== undefined
+                ? { mcporterConfigPath: queued.run.mcporterConfigPath }
+                : {}),
               onAgentEvent: (evt) => {
                 if (evt.stream !== "compaction") {
                   return;

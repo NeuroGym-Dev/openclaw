@@ -53,6 +53,10 @@ export type GetReplyOptions = {
   hasRepliedRef?: { value: boolean };
   /** Override agent timeout in seconds (0 = no timeout). Threads through to resolveAgentTimeoutMs. */
   timeoutOverrideSeconds?: number;
+  /** Default client tools (e.g. MCP) to inject for this run. When set for channel runs, use executeClientToolsLocally so they run via mcporter. */
+  clientTools?: import("../agents/pi-embedded-runner/run/params.js").ClientToolDefinition[];
+  /** When true, clientTools are executed locally via mcporter (for Slack/DM etc.). */
+  executeClientToolsLocally?: boolean;
 };
 
 export type ReplyPayload = {

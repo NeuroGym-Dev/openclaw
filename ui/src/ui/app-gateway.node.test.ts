@@ -5,6 +5,7 @@ import { connectGateway } from "./app-gateway.ts";
 type GatewayClientMock = {
   start: ReturnType<typeof vi.fn>;
   stop: ReturnType<typeof vi.fn>;
+  options: { clientName?: string; mode?: string };
   emitClose: (info: {
     code: number;
     reason?: string;
@@ -34,6 +35,8 @@ vi.mock("./gateway.ts", () => {
 
     constructor(
       private opts: {
+        clientName?: string;
+        mode?: string;
         onClose?: (info: {
           code: number;
           reason: string;
@@ -46,6 +49,10 @@ vi.mock("./gateway.ts", () => {
       gatewayClientInstances.push({
         start: this.start,
         stop: this.stop,
+        options: {
+          clientName: this.opts.clientName,
+          mode: this.opts.mode,
+        },
         emitClose: (info) => {
           this.opts.onClose?.({
             code: info.code,
@@ -132,6 +139,16 @@ describe("connectGateway", () => {
     expect(host.lastError).toBe(
       "event gap detected (expected seq 20, got 24); refresh recommended",
     );
+  });
+
+  it("connects the control UI in ui mode", () => {
+    const host = createHost();
+
+    connectGateway(host);
+    const client = gatewayClientInstances[0];
+    expect(client).toBeDefined();
+    expect(client.options.clientName).toBe("openclaw-control-ui");
+    expect(client.options.mode).toBe("ui");
   });
 
   it("ignores stale client onEvent callbacks after reconnect", () => {

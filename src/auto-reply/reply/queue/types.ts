@@ -1,4 +1,5 @@
 import type { ExecToolDefaults } from "../../../agents/bash-tools.js";
+import type { ClientToolDefinition } from "../../../agents/pi-embedded-runner/run/params.js";
 import type { SkillSnapshot } from "../../../agents/skills.js";
 import type { OpenClawConfig } from "../../../config/config.js";
 import type { SessionEntry } from "../../../config/sessions.js";
@@ -79,6 +80,9 @@ export type FollowupRun = {
     ownerNumbers?: string[];
     extraSystemPrompt?: string;
     enforceFinalTag?: boolean;
+    clientTools?: ClientToolDefinition[];
+    executeClientToolsLocally?: boolean;
+    mcporterConfigPath?: string;
   };
 };
 
