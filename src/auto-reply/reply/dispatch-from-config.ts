@@ -337,12 +337,19 @@ export async function dispatchReplyFromConfig(params: {
     };
 
     const defaultClientTools = await loadDefaultClientTools(cfg);
+    const mergedClientTools = params.replyOptions?.clientTools ?? defaultClientTools;
+    const mergedExecuteLocally =
+      params.replyOptions?.executeClientToolsLocally ??
+      (defaultClientTools && defaultClientTools.length > 0 ? true : undefined);
+    if (mergedClientTools?.length && mergedExecuteLocally) {
+      logVerbose(
+        `dispatch-from-config: injecting ${mergedClientTools.length} client tools (executeClientToolsLocally=true)`,
+      );
+    }
     const mergedReplyOptions: Omit<GetReplyOptions, "onToolResult" | "onBlockReply"> = {
       ...params.replyOptions,
-      clientTools: params.replyOptions?.clientTools ?? defaultClientTools,
-      executeClientToolsLocally:
-        params.replyOptions?.executeClientToolsLocally ??
-        (defaultClientTools && defaultClientTools.length > 0 ? true : undefined),
+      clientTools: mergedClientTools,
+      executeClientToolsLocally: mergedExecuteLocally,
     };
     const replyResult = await (params.replyResolver ?? getReplyFromConfig)(
       ctx,

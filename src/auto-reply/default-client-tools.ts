@@ -5,6 +5,7 @@
 import fs from "node:fs/promises";
 import type { ClientToolDefinition } from "../agents/pi-embedded-runner/run/params.js";
 import type { OpenClawConfig } from "../config/config.js";
+import { logInfo, logWarn } from "../logger.js";
 
 let cached: ClientToolDefinition[] | null = null;
 let cachedPath: string | null = null;
@@ -40,12 +41,26 @@ export async function loadDefaultClientTools(
     const raw = await fs.readFile(path, "utf8");
     const parsed = JSON.parse(raw) as unknown;
     if (!isClientToolDefinitionArray(parsed)) {
+      logWarn(
+        `default-client-tools: invalid format at ${path} (expected array of { function: { name } })`,
+      );
+      cachedPath = path;
+      cached = [];
       return undefined;
     }
     cachedPath = path;
     cached = parsed;
-    return parsed.length > 0 ? parsed : undefined;
-  } catch {
+    const out = parsed.length > 0 ? parsed : undefined;
+    if (out) {
+      logInfo(`default-client-tools: loaded ${out.length} tools from ${path}`);
+    }
+    return out;
+  } catch (err) {
+    const code =
+      err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
+    logWarn(
+      `default-client-tools: failed to load ${path}: ${code || (err instanceof Error ? err.message : String(err))}`,
+    );
     cachedPath = path;
     cached = [];
     return undefined;
