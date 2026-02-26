@@ -9,6 +9,7 @@ import type { TypingMode } from "../../config/types.js";
 import { logVerbose } from "../../globals.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
 import { defaultRuntime } from "../../runtime.js";
+import { loadDefaultClientTools } from "../default-client-tools.js";
 import { stripHeartbeatToken } from "../heartbeat.js";
 import type { OriginatingChannelType } from "../templating.js";
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../tokens.js";
@@ -121,6 +122,17 @@ export function createFollowupRunner(params: {
           verboseLevel: queued.run.verboseLevel,
         });
       }
+      // When the queued run has no client tools (e.g. session started before default MCP deploy),
+      // inject default client tools so DM and other channel followups get HubSpot/Google MCP.
+      let resolvedClientTools = queued.run.clientTools;
+      let resolvedExecuteLocally = queued.run.executeClientToolsLocally;
+      if (resolvedClientTools === undefined) {
+        const defaultTools = await loadDefaultClientTools(queued.run.config);
+        if (defaultTools?.length) {
+          resolvedClientTools = defaultTools;
+          resolvedExecuteLocally = true;
+        }
+      }
       let autoCompactionCompleted = false;
       let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
       let fallbackProvider = queued.run.provider;
@@ -174,11 +186,9 @@ export function createFollowupRunner(params: {
               timeoutMs: queued.run.timeoutMs,
               runId,
               blockReplyBreak: queued.run.blockReplyBreak,
-              ...(queued.run.clientTools !== undefined
-                ? { clientTools: queued.run.clientTools }
-                : {}),
-              ...(queued.run.executeClientToolsLocally !== undefined
-                ? { executeClientToolsLocally: queued.run.executeClientToolsLocally }
+              ...(resolvedClientTools !== undefined ? { clientTools: resolvedClientTools } : {}),
+              ...(resolvedExecuteLocally !== undefined
+                ? { executeClientToolsLocally: resolvedExecuteLocally }
                 : {}),
               ...(queued.run.mcporterConfigPath !== undefined
                 ? { mcporterConfigPath: queued.run.mcporterConfigPath }
